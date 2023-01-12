@@ -76,9 +76,7 @@ const Explore = () => {
         let listings = await marketplaceContract.methods
           .listings(hexanftAddress, i, owner)
           .call();
-        console.log(
-          ethers.utils.formatUnits(listings.pricePerItem.toString(), "ether")
-        );
+        // console.log(ethers.utils.formatUnits(listings.pricePerItem.toString(), "ether"));
         // we want get the token metadata - json
         const meta = await axios.get(tokenUri);
         // console.log(meta)

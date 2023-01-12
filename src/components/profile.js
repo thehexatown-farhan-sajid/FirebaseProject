@@ -27,9 +27,7 @@ const UserProfile = () => {
   async function loadNFTs() {
     const { account, web3 } = await connect();
     const nftContract = new web3.eth.Contract(HexaNFTs.abi, hexanftAddress);
-    // let pointer = await nftContract.methods.tokenIdPointer().call();
     let walletofowner = await nftContract.methods.walletOfOwner(account).call();
-    // console.log("walletofowner", walletofowner);
 
     const items = await Promise.all(
       walletofowner.map(async (i) => {
@@ -54,40 +52,6 @@ const UserProfile = () => {
     setLoadingState("loaded");
   }
 
-  // console.log(nfts);
-
-  // if(loadingState === 'loaded' && !nfts.length) return (<h1
-  //   className='px-20 py-7 text-4x1'>You do not own any NFTs currently :(</h1>)
-
-  // return(
-  //     <div className="flex flex-col h-full w-full">
-  //         <div className="text-center text-gray-800 font-bold text-[25px] mt-8">My NFTs</div>
-  //         <div className="flex flex-wrap w-10/2 gap-4 ml-8 mt-6 justify-start">
-  //         {[...Array(16)].map((item, index) => {
-  //         return (
-  //           <>
-  //         <div className="flex flex-col w-[300px] h-[350px] bg-white border-2 rounded-2xl">
-  //               <img
-  //                 className="h-[220px] w-[270px] p-2 ml-3"
-  //                 src={nfts.image}
-  //                 alt="nft"
-  //               />
-  //               <p className="text-gray-400 pl-6 mt-1">{nfts.name}</p>
-  //               <p className="text-gray-800 font-bold pl-6 mt-0">
-  //                 {nfts.description}
-  //               </p>
-  //               <div className="flex flex-row h-full -full justify-center">
-  //               <Link className="Listing" to="/itemlist">
-  //                 <button className="flex h-10 w-[100px] bg-blue-500 mt-5 pt-1 text-white border-2 rounded-md justify-center hover:bg-white hover:text-black">List Now</button>
-  //                 </Link>
-  //                 </div>
-  //             </div>
-  //             </>
-  //         );
-  //       })}
-  //         </div>
-  //     </div>
-  // )
   if (loadingState === "loaded" && !nfts.length)
     return (
       <h1 className="px-20 py-7 text-4x1">You have not any nft minted :</h1>
