@@ -2,7 +2,9 @@ import React from "react";
 import { ethers } from "ethers";
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { useDispatch } from "react-redux";
 import { Link } from "react-router-dom";
+import { setCardId } from "../redux/counterSlice";
 // import Web3Modal from "web3modal";
 import { hexanftAddress, hexaMarketplaceAddress } from "../utils/options";
 import connect from "../utils/auth";
@@ -10,6 +12,7 @@ import HexaNFTs from "../Abis/contracts/HexaNFTs.sol/HexaNFTs.json";
 import HexaMarketplace from "../Abis/contracts/HexaMarketplace.sol/HexaMarketplace.json";
 
 const Explore = () => {
+  const dispatch = useDispatch();
   const [nfts, setNFts] = useState([]);
   // const [loadingState, setLoadingState] = useState("not-loaded");
   const [status, setStatus] = useState(false);
@@ -304,7 +307,7 @@ const Explore = () => {
                   </div>
                 </div>
                 <Link className="ItemInno" to="/itemsinfo">
-                  <div className="flex p-4 mr-6 mb-2 rounded-lg bg-blue-500 justify-center text-white hover:bg-white hover:text-black">
+                  <div className="flex p-4 mr-6 mb-2 rounded-lg bg-blue-500 justify-center text-white hover:bg-white hover:text-black" onClick={() => dispatch(setCardId(nft.tokenId))}>
                     <button className="text-3x-1 text-center font-bold">
                       Item Info
                     </button>

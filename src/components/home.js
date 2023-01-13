@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 const Home = () => {
   return (
@@ -10,16 +11,21 @@ const Home = () => {
               Trade without platform fees on Hexa
             </p>
             <p className="text-15px pt-3 text-gray-400">
-              Hexa is an NFT marketplace built on Fantom. Create and trade
-              NFTs instantly with low network costs.
+              Hexa is an NFT marketplace built on Ethereum. Create and trade
+              NFTs instantly with low listing costs.
             </p>
+            
             <div className="flex flex-row justify-center gap-2 pt-5 pb-3">
+            <Link className="Explore" to="/explore" >
               <button className="bg-blue-500 text-white px-5 py-1 ml-2 h-10 w-[150px] rounded-md">
                 Explore
               </button>
+              </Link>
+              <Link className="Create" to="/create">
               <button className=" text-blue-500 px-5 py-1 ml-2 h-10 w-[150px] rounded-md border-2 border-blue-500">
                 Create
               </button>
+              </Link>
             </div>
           </div>
         </div>

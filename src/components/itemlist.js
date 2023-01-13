@@ -141,7 +141,7 @@ const ItemsList = () => {
             </div>
             <div className="flex flex-row mt-4 border-t-2 pt-4 justify-between">
               <p className="text-[25px] text-black">Potential Earning</p>
-              <p className="text-[25px] text-black">{finalProfit? finalProfit:0} WEI</p>
+              <p className="text-[15px] pt-3 text-black">{finalProfit? finalProfit:0} WEI</p>
             </div>
             <div className="flex flex-row h-full -full justify-center mt-4" onClick={listing}>
               <button className="flex items-center h-[60px] w-full bg-blue-500 font-bold text-white border-2 rounded-md justify-center hover:bg-white hover:text-black">
