@@ -1,14 +1,15 @@
 import React from "react";
 import { useEffect, useState } from "react";
-// import { ethers } from "ethers";
+import { ethers } from "ethers";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { useDispatch } from "react-redux";
 // import allActions from "./actions";
 
-import { hexanftAddress } from "../utils/options";
+import { hexanftAddress, hexaMarketplaceAddress } from "../utils/options";
 import connect from "../utils/auth";
 import HexaNFTs from "../Abis/contracts/HexaNFTs.sol/HexaNFTs.json";
+import HexaMarketplace from "../Abis/contracts/HexaMarketplace.sol/HexaMarketplace.json";
 import { setCardId } from "../redux/counterSlice";
 const UserProfile = () => {
   const dispatch = useDispatch();
@@ -16,28 +17,54 @@ const UserProfile = () => {
   const [nfts, setNFts] = useState([]);
   // const [cardid, setCardId] = useState(0);
   const [loadingState, setLoadingState] = useState("not-loaded");
+  const [id, setId] = useState(null)
  
   useEffect(() => {
     loadNFTs();
   }, []);
+  useEffect(() => {
+    if(id!=0){
+    cancelListing();
+    }
+  }, [id]);
 
-  
+  async function cancelListing(){
+    const { account, web3 } = await connect();
+    const nftContract = new web3.eth.Contract(HexaNFTs.abi, hexanftAddress);
+    const marketplaceContract = new web3.eth.Contract(
+      HexaMarketplace.abi,
+      hexaMarketplaceAddress
+    );
+    await marketplaceContract.methods.cancelListing(hexanftAddress, id).send({from: account})
+  }
 
 
   async function loadNFTs() {
     const { account, web3 } = await connect();
     const nftContract = new web3.eth.Contract(HexaNFTs.abi, hexanftAddress);
+    const marketplaceContract = new web3.eth.Contract(
+      HexaMarketplace.abi,
+      hexaMarketplaceAddress
+    );
     let walletofowner = await nftContract.methods.walletOfOwner(account).call();
 
     const items = await Promise.all(
       walletofowner.map(async (i) => {
         const tokenUri = await nftContract.methods.tokenURI(i).call();
+        let owner = await nftContract.methods.ownerOf(i).call();
+        let listings = await marketplaceContract.methods
+          .listings(hexanftAddress, i, owner)
+          .call();
         // let owner = await nftContract.methods.ownerOf(i).call()
         // we want get the token metadata - json
         const meta = await axios.get(tokenUri);
+        let price = ethers.utils.formatUnits(
+          listings.pricePerItem.toString(),
+          "ether"
+        );
         // let price = ethers.utils.formatUnits(i.price.toString(), 'ether')
         let item = {
-          // owner: owner,
+          price,
           tokenId: i,
           image: meta.data.image,
           name: meta.data.name,
@@ -52,7 +79,7 @@ const UserProfile = () => {
     setLoadingState("loaded");
   }
 
-  if (loadingState === "loaded" && !nfts.length)
+  if (loadingState === "loaded" && !nfts?.length)
     return (
       <h1 className="px-20 py-7 text-4x1">You have not any nft minted :</h1>
     );
@@ -75,19 +102,47 @@ const UserProfile = () => {
                   {nft.name}
                 </p>
                 <div style={{ height: "72px", overflow: "hidden" }}>
-                  <p className="text-gray-400">{nft.description}</p>
+                  <p className="text-gray-400">{nft.price}</p>
                 </div>
               </div>
-              <Link className="Listing" to="/itemlist" >
-              <div
+              {nft.price> 0 ?(
+            //  <div
+            //     className="flex p-4 bg-blue-500 justify-center text-white hover:bg-white hover:text-black" onClick={() => setId(nft.tokenId)}>
+            //     <button className="text-3x-1 text-center font-bold">
+            //       Cancel Listing
+            //     </button>
+            //   </div>
+            <div className="flex flex-row justify-between">
+                <div className="" onClick={() => setId(nft.tokenId)}>
+                  <div
+                    className="flex p-4 ml-6 mb-2 rounded-lg bg-blue-500 justify-center text-white hover:bg-white hover:text-black"
+                    // onClick={Buynft}
+                  >
+                    <button className="text-3x-1 text-center font-bold">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+                  <div className="flex p-4 mr-6 mb-2 rounded-lg bg-blue-500 justify-center text-white hover:bg-white hover:text-black"  onClick={() => dispatch(setCardId(nft.tokenId))}>
+                  <Link className="Listing" to="/itemlist" >
+                    <button className="text-3x-1 text-center font-bold">
+                      Update
+                    </button>
+                    </Link>
+                  </div>
+              </div>
+              ):
+               <div
                 className="flex p-4 bg-blue-500 justify-center text-white hover:bg-white hover:text-black"
                 onClick={() => dispatch(setCardId(nft.tokenId))}
-              >
+              ><Link className="Listing" to="/itemlist" >
                 <button className="text-3x-1 text-center font-bold">
                   List Now
                 </button>
+                </Link>
               </div>
-              </Link>
+              }
+              
             </div>
           ))}
         </div>

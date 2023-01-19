@@ -6,10 +6,13 @@ import { Link } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 
 // import Web3Modal from "web3modal";
-import { hexanftAddress, hexaMarketplaceAddress } from "../utils/options";
+import { hexanftAddress, hexaMarketplaceAddress, hexanAuctionAddress, WethAddress } from "../utils/options";
 import connect from "../utils/auth";
 import HexaNFTs from "../Abis/contracts/HexaNFTs.sol/HexaNFTs.json";
+import Hexatoken from "../Abis/contracts/ERC20.sol/HexaToken.json";
 import HexaMarketplace from "../Abis/contracts/HexaMarketplace.sol/HexaMarketplace.json";
+import HexamAuction from "../Abis/contracts/HexaAuction.sol/HexamAuction.json"
+import Weth from "../Abis/contracts/WETH.sol/Weth.json"
 const ItemsInfo = () => {
   const [properties, setProperties] = useState(false);
   const [collection, setCollection] = useState(false);
@@ -21,6 +24,13 @@ const ItemsInfo = () => {
   const [activity, setActivity] = useState(false);
   const { cardid } = useSelector((state) => state.counter);
   const [cardinfo, setCardInfo] = useState([]);
+  const [doffer, setDoffer] = useState([]);
+  const [getauction, setGetAuction] = useState([]);
+  const [gethighestbidder, setGetHighestBidder] = useState([])
+  const [show, setShow] = useState(false);
+  const [cancelshow, setCancelShow] = useState(false);
+  const [price, setPrice] = useState(0)
+  const [bidsection, setBidSection] = useState(false)
 
   const handleProperties = () => {
     setProperties(!properties);
@@ -50,7 +60,45 @@ const ItemsInfo = () => {
     loadImage();
   }, []);
 
-  console.log("cardsymbol", cardinfo.symbol);
+  // console.log("cardsymbol", cardinfo.symbol);
+  async function cancelOffer() {
+    const { account, web3 } = await connect();
+    const nftContract = new web3.eth.Contract(HexaNFTs.abi, hexanftAddress);
+    const marketplaceContract = new web3.eth.Contract(
+      HexaMarketplace.abi,
+      hexaMarketplaceAddress
+    );
+     await marketplaceContract.methods.cancelOffer(hexanftAddress, cardid).send({from: account})
+  }
+  async function acceptOffer() {
+    const { account, web3 } = await connect();
+    // const tokenContract = new web3.eth.Contract(Hexatoken.abi, hexaTokenAddress)
+    const tokenContract = new web3.eth.Contract(Weth.abi, WethAddress)
+
+    const nftContract = new web3.eth.Contract(HexaNFTs.abi, hexanftAddress);
+    const marketplaceContract = new web3.eth.Contract(
+      HexaMarketplace.abi,
+      hexaMarketplaceAddress
+    );
+    const owner = await nftContract.methods.ownerOf(cardid).call()
+    // console.log("owner",owner)
+    const approved = await nftContract.methods.isApprovedForAll(owner, hexaMarketplaceAddress).call()
+    if(approved == false){
+      await nftContract.methods.setApprovalForAll(hexaMarketplaceAddress, true).send({ from: owner})
+    }
+    
+     await marketplaceContract.methods.acceptOffer(hexanftAddress, cardid, doffer.offerer).send({from: owner})
+  }
+
+  async function placeBid(){
+    const { account, web3 } = await connect();
+    const nftContract = new web3.eth.Contract(HexaNFTs.abi, hexanftAddress)
+    const auctionContract = new web3.eth.Contract(HexamAuction.abi, hexanAuctionAddress)
+    let cardPrice = ethers.utils.parseUnits(price.toString(), "wei")
+    await auctionContract.methods.placeBid(hexanftAddress, cardid).send({from: account, value: cardPrice})
+  }
+
+
   async function loadImage() {
     const { account, web3 } = await connect();
     const nftContract = new web3.eth.Contract(HexaNFTs.abi, hexanftAddress);
@@ -58,9 +106,21 @@ const ItemsInfo = () => {
       HexaMarketplace.abi,
       hexaMarketplaceAddress
     );
+    const auctionContract = new web3.eth.Contract(HexamAuction.abi, hexanAuctionAddress)
+    const getAuctionval = await auctionContract.methods.getAuction(hexanftAddress, cardid).call()
+    if(getAuctionval._reservePrice > 0){
+      setBidSection(true)
+    }
+    setGetAuction(getAuctionval)
+    const highbider = await auctionContract.methods.getHighestBidder(hexanftAddress, cardid).call()
+    // console.log(highbider._bid)
+    setGetHighestBidder(highbider)
+    const dOffer = await marketplaceContract.methods.directoffer(cardid).call()
+    setDoffer(dOffer)
 
     const tokenUri = await nftContract.methods.tokenURI(cardid).call();
     const owner = await nftContract.methods.ownerOf(cardid).call();
+    
     let listings = await marketplaceContract.methods
       .listings(hexanftAddress, cardid, owner)
       .call();
@@ -68,6 +128,12 @@ const ItemsInfo = () => {
       listings.pricePerItem.toString(),
       "ether"
     );
+    if (account == owner&& dOffer.pricePerItem>0){
+      setShow(true)
+    }
+    if (account == dOffer.offerer){
+      setCancelShow(true)
+    }
     const meta = await axios.get(tokenUri);
     let item = {
       price: price,
@@ -82,6 +148,7 @@ const ItemsInfo = () => {
 
     setCardInfo(item);
   }
+  // console.log("doffer", doffer)
   return (
     <div className="h-full -w-full">
       <div className="flex flex-col max-w-[1240px] h-full mx-auto bg-white">
@@ -226,11 +293,47 @@ const ItemsInfo = () => {
                 Owned by<p className="text-blue-500 ml-2">{cardinfo.owner}</p>
               </span>
             </div>
-            <div className="flex w-[600px] h-[60px] mt-4 ml-2 border-2 rounded-md items-center">
+            
+            <div className="flex w-[600px] h-[60px] mt-4 ml-2 border-2 rounded-md items-center justify-between">
+            <Link className="Makeoffer" to="/makeoffer" >
               <button className="flex h-10 w-[120px] ml-4 bg-blue-500 text-white border-2 rounded-md items-center justify-center hover:bg-white hover:text-black">
                 Make Offer
               </button>
+              </Link>
+              
+                {show ?( 
+                  <div className="flex flex-row w-full h-full mt-4">
+              <button className="flex h-10 w-[120px] ml-4 bg-blue-500 text-white border-2 rounded-md items-center justify-center hover:bg-white hover:text-black" onClick={acceptOffer}>
+                Accept Offer
+              </button>
+              <p className="flex flex-row pl-4 h-10 w-[250px] items-center text-center font-bold text-[20px] text-black">{ethers.utils.formatUnits(doffer.pricePerItem?doffer.pricePerItem.toString():0,"ether")} WETH</p>
+              </div>
+              ): null}
+              {cancelshow ?( 
+                  <div className="flex flex-row w-full h-full mt-4">
+              <button className="flex h-10 w-[120px] ml-4 bg-blue-500 text-white border-2 rounded-md items-center justify-center hover:bg-white hover:text-black"onClick={cancelOffer}>
+                Cancel Offer
+              </button>
+              <p className="flex flex-row pl-4 h-10 w-[250px] items-center text-center font-bold text-[20px] text-black">{ethers.utils.formatUnits(doffer.pricePerItem?doffer.pricePerItem.toString():0,"ether")} WETH</p>
+              </div>
+              ): null}
+              
             </div>
+            {bidsection ?(
+            <div className="flex flex-col h-full w-full mt-8 ml-2 ">
+            <div className="flex flex-row w-[600px] h-16 items-center mt-8 ml-2 border-2 rounded-md justify-between">
+              <button className="flex flex-row w-[75px] ml-4 h-10 pl-5 text-white font-bold bg-blue-500 items-center border-2 rounded-md text-[15px]" onClick={placeBid}>Bid</button>
+              <input placeholder="Bid Price" type={"number"} className = "w-[250px] h-10 border-2"  onChange={(e) =>setPrice(e.target.value )}/>
+              <p className="mr-2 font-bold text-[15px]">Reserve Price : {ethers.utils.formatUnits(getauction._reservePrice?getauction._reservePrice.toString():0,"ether")} ETH</p>
+            </div>
+            <div className="flex flex-row w-[600px] h-16 items-center mt-[-2px] ml-2 border-2 rounded-md justify-between">
+            <p className="ml-2 font-bold text-[15px]">End Time : {getauction._endTime }</p>
+              <p className="font-bold text-[15px]">Top Bid : {ethers.utils.formatUnits(gethighestbidder._bid?gethighestbidder._bid.toString():0,"ether")} ETH</p>
+              <p className="mr-2 font-bold text-[15px]">Start Time : {getauction._startTime }</p>
+            </div>
+            </div>
+              ):null}
+             
             <div className="flex flex-col w-[600px] h-full mt-16 ml-2 border-2 rounded-md">
               <button
                 className="flex flex-row h-14 w-[120px] ml-6 font-bold text-black items-center"
@@ -250,13 +353,6 @@ const ItemsInfo = () => {
                 Attributes
               </button>
               {attributes ? (
-                // <div className="flex flex-col w-full h-full border-2">
-                //   <div className="flex flex-row justify-between items-center p-6 ml-4 mr-4">
-                //     <div className="text-[15px] text-black">Type</div>
-                //     <div className="text-[15px] text-black">Value</div>
-                //     <div className="text-[15px] text-black">Frequency</div>
-                //   </div>
-                // </div>
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
@@ -378,16 +474,16 @@ const ItemsInfo = () => {
                   <tbody className="divide-y divide-gray-200">
                     <tr>
                       <td className="px-6 py-4 text-sm font-medium text-gray-800 whitespace-nowrap">
-                        --
+                        {doffer.offerer.substring(0,12)}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-800 whitespace-nowrap">
-                        --
+                        {ethers.utils.formatUnits(doffer.pricePerItem.toString(),"ether")} WETH
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-800 whitespace-nowrap">
-                        --
+                        {doffer.deadline}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-800 whitespace-nowrap">
-                        --
+                        <span className="text-blue-500">true</span>
                       </td>
                     </tr>
                   </tbody>

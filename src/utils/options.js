@@ -1,4 +1,8 @@
-export const hexanftAddress = "0xcC90E2654084B88F4CdeD99903018B199B1D6729"
-export const hexaMarketplaceAddress = "0x68d017d251a6080B39a2745369ef148702828906"
-export const hexanAuctionAddress = "0x5431bFf9E732Cd28c1500e3ec24cdF5F6a0b804A"
-export const hexa1155Address = "0x115249D425B2A74073b961446fDB197cE1bF2672"
+export const hexanftAddress = "0xB366b1758Bb8045c5ea17667Dd82C92e1907925E"
+export const hexaMarketplaceAddress = "0xDE231EB639BE504Da2AF0F0C7dAa672C21a2F926"
+export const hexanAuctionAddress = "0x2e9a76aFA9FA4C4B0Ebe7aDB76C5dF281e9aead3"
+export const hexa1155Address = "0x75Fef3F2BAD9F6C4ed74Aa410045C23BB8E2ed88"
+// export const hexaTokenAddress = "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
+
+
+export const WethAddress = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6"

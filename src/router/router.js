@@ -6,6 +6,7 @@ import Collection from "../components/collection";
 import UserProfile from "../components/profile";
 import ItemsInfo from "../components/itemsinfo";
 import ItemsList from "../components/itemlist";
+import MakeOffer from "../components/makeoffer";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Navbar from "../components/navbar";
 
@@ -21,6 +22,7 @@ const Routers = () => {
         <Route path="/userprofile" element={<UserProfile />} />
         <Route path="/itemsinfo" element={<ItemsInfo />} />
         <Route path="/itemlist" element={<ItemsList />} />
+        <Route path="/makeoffer" element={<MakeOffer />} />
       </Routes>
     </BrowserRouter>
   );

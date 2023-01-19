@@ -10,6 +10,7 @@ import { hexanftAddress, hexaMarketplaceAddress } from "../utils/options";
 import connect from "../utils/auth";
 import HexaNFTs from "../Abis/contracts/HexaNFTs.sol/HexaNFTs.json";
 import HexaMarketplace from "../Abis/contracts/HexaMarketplace.sol/HexaMarketplace.json";
+// import { hasMatchFunction } from "@reduxjs/toolkit/dist/tsHelpers";
 
 const Explore = () => {
   const dispatch = useDispatch();
@@ -28,7 +29,7 @@ const Explore = () => {
   useEffect(() => {
     
     if(tokenid!=0){
-      console.log("tokenid", tokenid);
+      // console.log("tokenid", tokenid);
     Buynft();
     }
   }, [tokenid]);
@@ -45,7 +46,7 @@ const Explore = () => {
     if (tokenid != 0) {
       owner = await nftContract.methods.ownerOf(tokenid).call();
     }
-    console.log("owner:", owner);
+    // console.log("owner:", owner);
     let listings = await marketplaceContract.methods
       .listings(hexanftAddress, tokenid, owner)
       .call();
@@ -66,12 +67,12 @@ const Explore = () => {
     );
 
     let pointer = await nftContract.methods.tokenIdPointer().call();
-    console.log("pointer", pointer);
+    // console.log("pointer", pointer);
     var ids = [];
     for (let i = 1; i <= pointer; i++) {
       ids.push(i);
     }
-    console.log("ids", ids);
+    // console.log("ids", ids);
     const items = await Promise.all(
       ids.map(async (i) => {
         const tokenUri = await nftContract.methods.tokenURI(i).call();
@@ -87,7 +88,7 @@ const Explore = () => {
           listings.pricePerItem.toString(),
           "ether"
         );
-        console.log(price);
+        // console.log(price);
         let item = {
           price,
           tokenId: i,
@@ -100,7 +101,7 @@ const Explore = () => {
     );
     setNFts(items);
     // setLoadingState("loaded");
-    console.log("nfts", nfts);
+    // console.log("nfts", nfts);
   }
 
   const handleStatus = () => {
@@ -295,6 +296,7 @@ const Explore = () => {
                   <p className="text-gray-400">Price: {nft.price}</p>
                 </div>
               </div>
+              {nft.price> 0? (
               <div className="flex flex-row justify-between">
                 <div className="" onClick={() => setTokenid(nft.tokenId)}>
                   <div
@@ -314,6 +316,18 @@ const Explore = () => {
                   </div>
                 </Link>
               </div>
+               ):
+               <div className="flex flex-row justify-center">
+               <Link className="ItemInno" to="/itemsinfo">
+               <div className="flex p-4 mb-2 rounded-lg bg-blue-500 justify-center text-white hover:bg-white hover:text-black" onClick={() => dispatch(setCardId(nft.tokenId))}>
+                 <button className="text-3x-1 text-center font-bold">
+                   Item Info
+                 </button>
+               </div>
+             </Link>
+             </div>
+             }
+            
             </div>
           ))}
         </div>
