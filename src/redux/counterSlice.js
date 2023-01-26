@@ -16,6 +16,9 @@ export const counterSlice = createSlice({
       
       state.cardid = action.payload;
     },
+    setDefaultAccount:(state, action) =>{
+      state.defaultAccount = action.payload;
+    }
   },
 });
 

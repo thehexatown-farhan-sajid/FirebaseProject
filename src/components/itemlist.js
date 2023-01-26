@@ -81,8 +81,10 @@ const ItemsList = () => {
     }
     let Fee =  await auctionContract.methods.platformFee().call();
     Fee = Fee.toString();
-    let cardPrice = ethers.utils.parseUnits(price.toString(), "wei")
-        await auctionContract.methods.createAuction(hexanftAddress, cardid, cardPrice, time, false, endtime).send({from: account, value: Fee})
+    const cardPrice = ethers.utils.parseUnits(price.toString(), "wei")
+    const starttimestamp = new Date(time).getTime()/1000.0
+    const endtimestamp = new Date(endtime).getTime()/1000.0
+        await auctionContract.methods.createAuction(hexanftAddress, cardid, cardPrice, starttimestamp, false, endtimestamp).send({from: account, value: Fee})
       }
 
       async function updateListing() {
@@ -112,8 +114,9 @@ const ItemsList = () => {
         const tokenUri = await nftContract.methods.tokenURI(cardid).call();
         const meta = await axios.get(tokenUri);
         const royalty = meta.data.royalty
-        console.log("royalty",royalty)
-        await marketplaceContract.methods.listItem(hexanftAddress, cardid, 1, cardPrice, time).send({ from: account, value: Fee })
+        // console.log("royalty",royalty)
+        const starttimestamp = new Date(time).getTime()/1000.0
+        await marketplaceContract.methods.listItem(hexanftAddress, cardid, 1, cardPrice, starttimestamp).send({ from: account, value: Fee })
         await marketplaceContract.methods.registerRoyalty(hexanftAddress, cardid, royalty)
     }
   return (
@@ -161,7 +164,7 @@ const ItemsList = () => {
           </p>
           <input
             placeholder="Time Stemp"
-            type={"number"}
+            type={"datetime-local"}
             className="mt-2 ml-8 w-full h-[60px] border-2 rounded-md items-center pl-4 pr-4"
             onChange={(e) =>
               setTime(e.target.value )
@@ -172,7 +175,7 @@ const ItemsList = () => {
           </p>
           <input
             placeholder="Time Stemp"
-            type={"number"}
+            type={"datetime-local"}
             className="mt-2 ml-8 w-full h-[60px] border-2 rounded-md items-center pl-4 pr-4"
             onChange={(e) =>
               setEndTime(e.target.value )
@@ -205,7 +208,7 @@ const ItemsList = () => {
           </p>
           <input
             placeholder="Time Stemp"
-            type={"number"}
+            type={"datetime-local"}
             className="mt-2 ml-8 w-full h-[60px] border-2 rounded-md items-center pl-4 pr-4"
             onChange={(e) =>
               setTime(e.target.value )

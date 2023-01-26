@@ -1,16 +1,23 @@
 import React from "react";
 import { ethers } from "ethers";
 import { useEffect, useState } from "react";
+import { getETHPrice } from "../utils/getEthPrice";
+// import * as dotenv from 'dotenv'
+import Web3 from "web3";
+// const Web3 = require("web3") // for nodejs only
+
 import axios from "axios";
 import { useDispatch } from "react-redux";
 import { Link } from "react-router-dom";
 import { setCardId } from "../redux/counterSlice";
-// import Web3Modal from "web3modal";
 import { hexanftAddress, hexaMarketplaceAddress } from "../utils/options";
 import connect from "../utils/auth";
 import HexaNFTs from "../Abis/contracts/HexaNFTs.sol/HexaNFTs.json";
 import HexaMarketplace from "../Abis/contracts/HexaMarketplace.sol/HexaMarketplace.json";
+// const project_id = "a40778806c9e4d0f962550277a5babed";
 // import { hasMatchFunction } from "@reduxjs/toolkit/dist/tsHelpers";
+
+
 
 const Explore = () => {
   const dispatch = useDispatch();
@@ -24,16 +31,25 @@ const Explore = () => {
 
   useEffect(() => {
     loadNFTs();
+    price();
   }, []);
 
   useEffect(() => {
     
-    if(tokenid!=0){
+    if(tokenid!==0){
       // console.log("tokenid", tokenid);
     Buynft();
     }
   }, [tokenid]);
-
+  ////////////////////////////////////////////////////////////
+async function price(){
+ let  value = await getETHPrice();
+ let usdValue = Number(1 * value).toFixed(2);
+ console.log("usdValue",usdValue)
+}
+// price()
+  
+////////////////////////////////////////////////////////////////////
   async function Buynft() {
     // console.log("first....................");
     const { account, web3 } = await connect();
@@ -43,7 +59,7 @@ const Explore = () => {
       hexaMarketplaceAddress
     );
     let owner;
-    if (tokenid != 0) {
+    if (tokenid !== 0) {
       owner = await nftContract.methods.ownerOf(tokenid).call();
     }
     // console.log("owner:", owner);
@@ -59,16 +75,19 @@ const Explore = () => {
   }
 
   async function loadNFTs() {
-    const { web3 } = await connect();
+    // const { web3 } = await connect();
+    // const nftContract = new web3.eth.Contract(HexaNFTs.abi, hexanftAddress);
+    // const marketplaceContract = new web3.eth.Contract(
+    //   HexaMarketplace.abi,
+    //   hexaMarketplaceAddress
+    // );
+    const  web3 = new Web3(new Web3.providers.HttpProvider("https://goerli.infura.io/v3/a40778806c9e4d0f962550277a5babed"));
     const nftContract = new web3.eth.Contract(HexaNFTs.abi, hexanftAddress);
-    const marketplaceContract = new web3.eth.Contract(
-      HexaMarketplace.abi,
-      hexaMarketplaceAddress
-    );
-
-    let pointer = await nftContract.methods.tokenIdPointer().call();
+    const marketplaceContract = new web3.eth.Contract( HexaMarketplace.abi, hexaMarketplaceAddress);
+// console.log("nftContract",nftContract)
+    const pointer = await nftContract.methods.tokenIdPointer().call();
     // console.log("pointer", pointer);
-    var ids = [];
+    const ids = [];
     for (let i = 1; i <= pointer; i++) {
       ids.push(i);
     }
@@ -76,20 +95,20 @@ const Explore = () => {
     const items = await Promise.all(
       ids.map(async (i) => {
         const tokenUri = await nftContract.methods.tokenURI(i).call();
-        let owner = await nftContract.methods.ownerOf(i).call();
-        let listings = await marketplaceContract.methods
+        const owner = await nftContract.methods.ownerOf(i).call();
+        const listings = await marketplaceContract.methods
           .listings(hexanftAddress, i, owner)
           .call();
         // console.log(ethers.utils.formatUnits(listings.pricePerItem.toString(), "ether"));
         // we want get the token metadata - json
         const meta = await axios.get(tokenUri);
         // console.log(meta)
-        let price = ethers.utils.formatUnits(
+        const price = ethers.utils.formatUnits(
           listings.pricePerItem.toString(),
           "ether"
         );
         // console.log(price);
-        let item = {
+        const item = {
           price,
           tokenId: i,
           image: meta.data.image,
@@ -283,7 +302,7 @@ const Explore = () => {
             <div key={i} className="border shadow rounded-x1 overflow-hidden">
               <img
                 className=" flex h-[220px] w-[270px] p-2 justify-center hover:h-[200px]"
-                src={nft.image}
+                src={nft.image} alt ="nft"
               />
               <div className="p-4">
                 <p

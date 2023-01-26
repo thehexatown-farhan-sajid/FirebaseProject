@@ -4,6 +4,7 @@ import { ethers } from "ethers";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { useDispatch } from "react-redux";
+
 // import allActions from "./actions";
 
 import { hexanftAddress, hexaMarketplaceAddress } from "../utils/options";
@@ -46,6 +47,7 @@ const UserProfile = () => {
       HexaMarketplace.abi,
       hexaMarketplaceAddress
     );
+    
     let walletofowner = await nftContract.methods.walletOfOwner(account).call();
 
     const items = await Promise.all(

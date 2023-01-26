@@ -1,20 +1,23 @@
 import React from "react";
 import { ethers } from "ethers";
+// import Web3 from "web3";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
+import SimpleDateTime  from 'react-simple-timestamp-to-date';
 
 // import Web3Modal from "web3modal";
 import { hexanftAddress, hexaMarketplaceAddress, hexanAuctionAddress, WethAddress } from "../utils/options";
 import connect from "../utils/auth";
 import HexaNFTs from "../Abis/contracts/HexaNFTs.sol/HexaNFTs.json";
-import Hexatoken from "../Abis/contracts/ERC20.sol/HexaToken.json";
+// import Hexatoken from "../Abis/contracts/ERC20.sol/HexaToken.json";
 import HexaMarketplace from "../Abis/contracts/HexaMarketplace.sol/HexaMarketplace.json";
 import HexamAuction from "../Abis/contracts/HexaAuction.sol/HexamAuction.json"
 import Weth from "../Abis/contracts/WETH.sol/Weth.json"
 const ItemsInfo = () => {
   const [properties, setProperties] = useState(false);
+  const [useraccount, setUserAccount] = useState('')
   const [collection, setCollection] = useState(false);
   const [chaininfo, setChainInfo] = useState(false);
   const [pricehistory, setPriceHistory] = useState(false);
@@ -31,6 +34,8 @@ const ItemsInfo = () => {
   const [cancelshow, setCancelShow] = useState(false);
   const [price, setPrice] = useState(0)
   const [bidsection, setBidSection] = useState(false)
+  const newtime = new Date()
+  const currentTime = newtime.getTime()/1000
 
   const handleProperties = () => {
     setProperties(!properties);
@@ -63,7 +68,7 @@ const ItemsInfo = () => {
   // console.log("cardsymbol", cardinfo.symbol);
   async function cancelOffer() {
     const { account, web3 } = await connect();
-    const nftContract = new web3.eth.Contract(HexaNFTs.abi, hexanftAddress);
+    // const nftContract = new web3.eth.Contract(HexaNFTs.abi, hexanftAddress);
     const marketplaceContract = new web3.eth.Contract(
       HexaMarketplace.abi,
       hexaMarketplaceAddress
@@ -71,9 +76,9 @@ const ItemsInfo = () => {
      await marketplaceContract.methods.cancelOffer(hexanftAddress, cardid).send({from: account})
   }
   async function acceptOffer() {
-    const { account, web3 } = await connect();
+    const { web3 } = await connect();
     // const tokenContract = new web3.eth.Contract(Hexatoken.abi, hexaTokenAddress)
-    const tokenContract = new web3.eth.Contract(Weth.abi, WethAddress)
+    // const tokenContract = new web3.eth.Contract(Weth.abi, WethAddress)
 
     const nftContract = new web3.eth.Contract(HexaNFTs.abi, hexanftAddress);
     const marketplaceContract = new web3.eth.Contract(
@@ -83,7 +88,7 @@ const ItemsInfo = () => {
     const owner = await nftContract.methods.ownerOf(cardid).call()
     // console.log("owner",owner)
     const approved = await nftContract.methods.isApprovedForAll(owner, hexaMarketplaceAddress).call()
-    if(approved == false){
+    if(approved === false){
       await nftContract.methods.setApprovalForAll(hexaMarketplaceAddress, true).send({ from: owner})
     }
     
@@ -92,7 +97,7 @@ const ItemsInfo = () => {
 
   async function placeBid(){
     const { account, web3 } = await connect();
-    const nftContract = new web3.eth.Contract(HexaNFTs.abi, hexanftAddress)
+    // const nftContract = new web3.eth.Contract(HexaNFTs.abi, hexanftAddress)
     const auctionContract = new web3.eth.Contract(HexamAuction.abi, hexanAuctionAddress)
     let cardPrice = ethers.utils.parseUnits(price.toString(), "wei")
     await auctionContract.methods.placeBid(hexanftAddress, cardid).send({from: account, value: cardPrice})
@@ -101,6 +106,10 @@ const ItemsInfo = () => {
 
   async function loadImage() {
     const { account, web3 } = await connect();
+    setUserAccount(account)
+    // const  web3 = new Web3(new Web3.providers.HttpProvider("https://goerli.infura.io/v3/a40778806c9e4d0f962550277a5babed"));
+    // const accounts = await web3.eth.getAccounts()
+    // console.log(accounts)
     const nftContract = new web3.eth.Contract(HexaNFTs.abi, hexanftAddress);
     const marketplaceContract = new web3.eth.Contract(
       HexaMarketplace.abi,
@@ -128,10 +137,11 @@ const ItemsInfo = () => {
       listings.pricePerItem.toString(),
       "ether"
     );
-    if (account == owner&& dOffer.pricePerItem>0){
+    const currentDateTime = new Date();
+    if (account === owner&& dOffer.pricePerItem>0 && dOffer.deadline > currentDateTime.getTime() / 1000){
       setShow(true)
     }
-    if (account == dOffer.offerer){
+    if (account === dOffer.offerer  && dOffer.deadline > currentDateTime.getTime() / 1000){
       setCancelShow(true)
     }
     const meta = await axios.get(tokenUri);
@@ -148,7 +158,6 @@ const ItemsInfo = () => {
 
     setCardInfo(item);
   }
-  // console.log("doffer", doffer)
   return (
     <div className="h-full -w-full">
       <div className="flex flex-col max-w-[1240px] h-full mx-auto bg-white">
@@ -295,11 +304,18 @@ const ItemsInfo = () => {
             </div>
             
             <div className="flex w-[600px] h-[60px] mt-4 ml-2 border-2 rounded-md items-center justify-between">
-            <Link className="Makeoffer" to="/makeoffer" >
+              {cardinfo.owner === useraccount?(
+                <Link className="Profile" to="/userprofile" >
+                <button className="flex h-10 w-[120px] ml-4 bg-blue-500 text-white border-2 rounded-md items-center justify-center hover:bg-white hover:text-black">
+                  Profile
+                </button>
+                </Link>
+              ):<Link className="Makeoffer" to="/makeoffer" >
               <button className="flex h-10 w-[120px] ml-4 bg-blue-500 text-white border-2 rounded-md items-center justify-center hover:bg-white hover:text-black">
                 Make Offer
               </button>
-              </Link>
+              </Link>}
+            
               
                 {show ?( 
                   <div className="flex flex-row w-full h-full mt-4">
@@ -327,9 +343,9 @@ const ItemsInfo = () => {
               <p className="mr-2 font-bold text-[15px]">Reserve Price : {ethers.utils.formatUnits(getauction._reservePrice?getauction._reservePrice.toString():0,"ether")} ETH</p>
             </div>
             <div className="flex flex-row w-[600px] h-16 items-center mt-[-2px] ml-2 border-2 rounded-md justify-between">
-            <p className="ml-2 font-bold text-[15px]">End Time : {getauction._endTime }</p>
-              <p className="font-bold text-[15px]">Top Bid : {ethers.utils.formatUnits(gethighestbidder._bid?gethighestbidder._bid.toString():0,"ether")} ETH</p>
-              <p className="mr-2 font-bold text-[15px]">Start Time : {getauction._startTime }</p>
+            <p className="ml-2 font-bold text-[12px]">End Time: {new Date(getauction._endTime*1000).toLocaleString()}</p>
+              <p className="font-bold text-[12px]">Top Bid : {ethers.utils.formatUnits(gethighestbidder._bid?gethighestbidder._bid.toString():0,"ether")} ETH</p>
+              <p className="mr-2 font-bold text-[12px]">Start Time :{new Date(getauction._startTime*1000).toLocaleString()}</p>
             </div>
             </div>
               ):null}
@@ -434,14 +450,6 @@ const ItemsInfo = () => {
                 Direct Offer
               </button>
               {offer ? (
-                // <div className="flex flex-col w-full h-full border-2">
-                //   <div className="flex flex-row justify-between items-center p-6 ml-4 mr-4">
-                //     <div className="text-[15px] text-black">From</div>
-                //     <div className="text-[15px] text-black">Price</div>
-                //     <div className="text-[15px] text-black">Expires</div>
-                //     <div className="text-[15px] text-black">Status</div>
-                //   </div>
-                // </div>
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
@@ -480,10 +488,12 @@ const ItemsInfo = () => {
                         {ethers.utils.formatUnits(doffer.pricePerItem.toString(),"ether")} WETH
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-800 whitespace-nowrap">
-                        {doffer.deadline}
+                      {new Date(doffer.deadline*1000).toLocaleString()}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-800 whitespace-nowrap">
-                        <span className="text-blue-500">true</span>
+                        {doffer.deadline > currentTime ? (
+                          <span className="text-blue-500">True</span>
+                        ):<span className="text-blue-500">false</span>}
                       </td>
                     </tr>
                   </tbody>
