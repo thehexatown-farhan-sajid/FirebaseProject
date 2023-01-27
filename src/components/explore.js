@@ -14,10 +14,6 @@ import { hexanftAddress, hexaMarketplaceAddress } from "../utils/options";
 import connect from "../utils/auth";
 import HexaNFTs from "../Abis/contracts/HexaNFTs.sol/HexaNFTs.json";
 import HexaMarketplace from "../Abis/contracts/HexaMarketplace.sol/HexaMarketplace.json";
-// const project_id = "a40778806c9e4d0f962550277a5babed";
-// import { hasMatchFunction } from "@reduxjs/toolkit/dist/tsHelpers";
-
-
 
 const Explore = () => {
   const dispatch = useDispatch();
@@ -28,86 +24,83 @@ const Explore = () => {
   const [pricefilter, setPrice] = useState(false);
   const [collection, setCollection] = useState(false);
   const [categories, setCategories] = useState(false);
+  const [usdprice, setUsdPrice] = useState(null);
 
   useEffect(() => {
     loadNFTs();
-    price();
   }, []);
 
   useEffect(() => {
-    
-    if(tokenid!==0){
-      // console.log("tokenid", tokenid);
-    Buynft();
-    }
-  }, [tokenid]);
-  ////////////////////////////////////////////////////////////
-async function price(){
- let  value = await getETHPrice();
- let usdValue = Number(1 * value).toFixed(2);
- console.log("usdValue",usdValue)
-}
-// price()
-  
-////////////////////////////////////////////////////////////////////
+    // BuyNFt function here we call marketplace contract buynft function and make transaction for buy nft
   async function Buynft() {
-    // console.log("first....................");
     const { account, web3 } = await connect();
     const nftContract = new web3.eth.Contract(HexaNFTs.abi, hexanftAddress);
     const marketplaceContract = new web3.eth.Contract(
       HexaMarketplace.abi,
       hexaMarketplaceAddress
     );
+    // here we get ownerOf nft
     let owner;
     if (tokenid !== 0) {
       owner = await nftContract.methods.ownerOf(tokenid).call();
-    }
-    // console.log("owner:", owner);
-    let listings = await marketplaceContract.methods
+    } 
+// get listing price
+    const listings = await marketplaceContract.methods
       .listings(hexanftAddress, tokenid, owner)
       .call();
 
-    let price = listings.pricePerItem;
-    // console.log(price);
+    const price = listings.pricePerItem;
     await marketplaceContract.methods
       .buyItem(hexanftAddress, tokenid, owner)
       .send({ from: account, value: price });
   }
+    if (tokenid && tokenid !== 0) {
+      Buynft();
+    }
+  }, [tokenid]);
 
+  
+// Load all nft that are minted 
   async function loadNFTs() {
-    // const { web3 } = await connect();
-    // const nftContract = new web3.eth.Contract(HexaNFTs.abi, hexanftAddress);
-    // const marketplaceContract = new web3.eth.Contract(
-    //   HexaMarketplace.abi,
-    //   hexaMarketplaceAddress
-    // );
-    const  web3 = new Web3(new Web3.providers.HttpProvider("https://goerli.infura.io/v3/a40778806c9e4d0f962550277a5babed"));
+    // Web3 infura provider url and project ID
+    const web3 = new Web3(
+      new Web3.providers.HttpProvider(
+        "https://goerli.infura.io/v3/a40778806c9e4d0f962550277a5babed"
+      )
+    );
+    // Both contract nftcontract and marketplace contract
     const nftContract = new web3.eth.Contract(HexaNFTs.abi, hexanftAddress);
-    const marketplaceContract = new web3.eth.Contract( HexaMarketplace.abi, hexaMarketplaceAddress);
-// console.log("nftContract",nftContract)
+    const marketplaceContract = new web3.eth.Contract(
+      HexaMarketplace.abi,
+      hexaMarketplaceAddress
+    );
+    // get nft pointer value
     const pointer = await nftContract.methods.tokenIdPointer().call();
-    // console.log("pointer", pointer);
+    // get Ether live price in usd
+    const value = await getETHPrice();
+    setUsdPrice(value);
     const ids = [];
     for (let i = 1; i <= pointer; i++) {
       ids.push(i);
     }
-    // console.log("ids", ids);
+    // map each token with its meta data
     const items = await Promise.all(
       ids.map(async (i) => {
+        //grt token uri
         const tokenUri = await nftContract.methods.tokenURI(i).call();
+        // owner of id
         const owner = await nftContract.methods.ownerOf(i).call();
+        // market listing price
         const listings = await marketplaceContract.methods
           .listings(hexanftAddress, i, owner)
           .call();
-        // console.log(ethers.utils.formatUnits(listings.pricePerItem.toString(), "ether"));
         // we want get the token metadata - json
         const meta = await axios.get(tokenUri);
-        // console.log(meta)
+        // convert price into ether from wei
         const price = ethers.utils.formatUnits(
           listings.pricePerItem.toString(),
           "ether"
         );
-        // console.log(price);
         const item = {
           price,
           tokenId: i,
@@ -119,10 +112,8 @@ async function price(){
       })
     );
     setNFts(items);
-    // setLoadingState("loaded");
-    // console.log("nfts", nfts);
   }
-
+// handle states
   const handleStatus = () => {
     setStatus(!status);
   };
@@ -278,31 +269,12 @@ async function price(){
           </button>
         </div>
         <div className="flex flex-wrap w-5/2 gap-8 ml-8 mt-2">
-          {/* {[...Array(16)].map((item, index) => {
-            return (
-              <>
-                <div className="flex flex-col w-[300px] h-[330px] bg-white border-2 rounded-2xl">
-                  <img
-                    className="h-[220px] w-[270px] p-2 ml-3"
-                    src={nfts.image}
-                    alt="nft"
-                  />
-                  <p className="text-gray-400 pl-6 mt-1">{nfts.name}</p>
-                  <p className="text-gray-800 font-bold pl-6 mt-0">
-                    Price: {nfts.price}
-                  </p>
-                  <div className="flex flex-row h-full -full justify-center" onClick={Buynft}>
-                    <button className="flex h-10 w-[100px] bg-blue-500 mt-2 pt-1 text-white border-2 rounded-md justify-center hover:bg-white hover:text-black">Buy Now</button>
-                    </div>
-                </div>
-              </>
-            );
-          })} */}
           {nfts.map((nft, i) => (
             <div key={i} className="border shadow rounded-x1 overflow-hidden">
               <img
                 className=" flex h-[220px] w-[270px] p-2 justify-center hover:h-[200px]"
-                src={nft.image} alt ="nft"
+                src={nft.image}
+                alt="nft"
               />
               <div className="p-4">
                 <p
@@ -312,41 +284,46 @@ async function price(){
                   {nft.name}
                 </p>
                 <div style={{ height: "72px", overflow: "hidden" }}>
-                  <p className="text-gray-400">Price: {nft.price}</p>
+                  <p className="text-gray-800">Price: {nft.price} ETH</p>
+                  <p className="text-gray-800">
+                    USD: {(Number(nft.price) * usdprice).toFixed(2)}$
+                  </p>
                 </div>
               </div>
-              {nft.price> 0? (
-              <div className="flex flex-row justify-between">
-                <div className="" onClick={() => setTokenid(nft.tokenId)}>
-                  <div
-                    className="flex p-4 ml-6 mb-2 rounded-lg bg-blue-500 justify-center text-white hover:bg-white hover:text-black"
-                    // onClick={Buynft}
-                  >
-                    <button className="text-3x-1 text-center font-bold">
-                      Buy Now
-                    </button>
+              {nft.price > 0 ? (
+                <div className="flex flex-row justify-between">
+                  <div className="" onClick={() => setTokenid(nft.tokenId)}>
+                    <div className="flex p-4 ml-6 mb-2 rounded-lg bg-blue-500 justify-center text-white hover:bg-white hover:text-black">
+                      <button className="text-3x-1 text-center font-bold">
+                        Buy Now
+                      </button>
+                    </div>
                   </div>
+                  <Link className="ItemInno" to="/itemsinfo">
+                    <div
+                      className="flex p-4 mr-6 mb-2 rounded-lg bg-blue-500 justify-center text-white hover:bg-white hover:text-black"
+                      onClick={() => dispatch(setCardId(nft.tokenId))}
+                    >
+                      <button className="text-3x-1 text-center font-bold">
+                        Item Info
+                      </button>
+                    </div>
+                  </Link>
                 </div>
-                <Link className="ItemInno" to="/itemsinfo">
-                  <div className="flex p-4 mr-6 mb-2 rounded-lg bg-blue-500 justify-center text-white hover:bg-white hover:text-black" onClick={() => dispatch(setCardId(nft.tokenId))}>
-                    <button className="text-3x-1 text-center font-bold">
-                      Item Info
-                    </button>
-                  </div>
-                </Link>
-              </div>
-               ):
-               <div className="flex flex-row justify-center">
-               <Link className="ItemInno" to="/itemsinfo">
-               <div className="flex p-4 mb-2 rounded-lg bg-blue-500 justify-center text-white hover:bg-white hover:text-black" onClick={() => dispatch(setCardId(nft.tokenId))}>
-                 <button className="text-3x-1 text-center font-bold">
-                   Item Info
-                 </button>
-               </div>
-             </Link>
-             </div>
-             }
-            
+              ) : (
+                <div className="flex flex-row justify-center">
+                  <Link className="ItemInno" to="/itemsinfo">
+                    <div
+                      className="flex p-4 mb-2 rounded-lg bg-blue-500 justify-center text-white hover:bg-white hover:text-black"
+                      onClick={() => dispatch(setCardId(nft.tokenId))}
+                    >
+                      <button className="text-3x-1 text-center font-bold">
+                        Item Info
+                      </button>
+                    </div>
+                  </Link>
+                </div>
+              )}
             </div>
           ))}
         </div>

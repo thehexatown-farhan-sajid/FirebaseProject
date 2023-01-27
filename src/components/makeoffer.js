@@ -1,44 +1,28 @@
 import React from "react";
-import { useState, useEffect } from "react";
-import { ethers } from "ethers";
+import { useState} from "react";
 import {
     hexanftAddress, hexaMarketplaceAddress, WethAddress
   } from "../utils/options";
 import connect from "../utils/auth";
-import HexaNFTs from "../Abis/contracts/HexaNFTs.sol/HexaNFTs.json";
 import HexaMarketplace from "../Abis/contracts/HexaMarketplace.sol/HexaMarketplace.json";
-import Hexatoken from "../Abis/contracts/ERC20.sol/HexaToken.json";
 import Weth from "../Abis/contracts/WETH.sol/Weth.json"
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
 
 
 const MakeOffer = () =>{
+  // states
     const [offerPrice, setOfferPrice] = useState('')
     const [timestemp, setTimeStemp] = useState(null)
     const { cardid } = useSelector((state) => state.counter);
 
-
-
+    //call marketplace createoffer function to make offer for an nft and send to its owner
     const CreateOffer = async()=>{
         const { account, web3 } = await connect();
         const tokenContract = new web3.eth.Contract(Weth.abi, WethAddress)
-        const nftContract = new web3.eth.Contract(HexaNFTs.abi, hexanftAddress);
         const marketplaceContract = new web3.eth.Contract(HexaMarketplace.abi, hexaMarketplaceAddress);
+        // approve weth token offer amount to marketplace. doing this we can use transferfrom function for transaction 
         await tokenContract.methods.approve(hexaMarketplaceAddress ,offerPrice).send({from: account});
         await marketplaceContract.methods.createOffer(hexanftAddress, cardid, WethAddress, 1, offerPrice, timestemp).send({from: account})
-
-
-        // const offer = await marketplaceContract.methods.offers(hexanftAddress, cardid, account).call()
-        // console.log("offer", offer)
-        // const tokenApprove =  "100000000000000000000"
-        let balance = await tokenContract.methods.balanceOf(account).call()
-        // await tokenContract.methods.approve(hexaMarketplaceAddress ,tokenApprove).send({from: account});
-        // let allownce = await tokenContract.methods.allowance(account, hexaMarketplaceAddress).call()
-        console.log("balance", ethers.utils.formatUnits(
-          balance.toString(),
-            "ether"
-          ))
-        // console.log("Balance", Balance)
     }
     return(
         <div className="flex flex- row m-12">

@@ -1,7 +1,6 @@
 import React from "react";
 import {useEffect, useState} from 'react'
 import axios from "axios";
-import { Link } from "react-router-dom";
 import { ethers } from "ethers";
 import {
     hexanftAddress,hexaMarketplaceAddress,hexanAuctionAddress
@@ -10,7 +9,7 @@ import connect from "../utils/auth";
 import HexaNFTs from "../Abis/contracts/HexaNFTs.sol/HexaNFTs.json";
 import HexaMarketplace from "../Abis/contracts/HexaMarketplace.sol/HexaMarketplace.json";
 import HexamAuction from "../Abis/contracts/HexaAuction.sol/HexamAuction.json"
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector} from "react-redux";
 
 
 const ItemsList = () => {
@@ -37,10 +36,8 @@ const ItemsList = () => {
     // let profit = ethers.utils.parseUnits(potentialPrice.toString(), "wei")
     
     useEffect(()=> {
-        loadImage()
-      }, [])
       async function loadImage() {
-        const { account, web3 } = await connect();
+        const { web3 } = await connect();
         const nftContract = new web3.eth.Contract(HexaNFTs.abi, hexanftAddress);
         const marketplaceContract = new web3.eth.Contract(HexaMarketplace.abi, hexaMarketplaceAddress);
         let Fee =  await marketplaceContract.methods.platformFee().call();
@@ -69,6 +66,11 @@ const ItemsList = () => {
         setCardInfo(item)
 
       }
+      if(cardid && cardid !==0){
+        loadImage()
+      }
+      }, [cardid])
+      
 
       async function createAuction(){
         const { account, web3 } = await connect();
@@ -76,7 +78,7 @@ const ItemsList = () => {
         const auctionContract = new web3.eth.Contract(HexamAuction.abi, hexanAuctionAddress);
         // console.log("auctionContract", auctionContract)
         const approved = await nftContract.methods.isApprovedForAll(account, hexanAuctionAddress).call()
-        if(approved == false){
+        if(approved === false){
         await nftContract.methods.setApprovalForAll(hexanAuctionAddress, true).send({ from: account})
     }
     let Fee =  await auctionContract.methods.platformFee().call();
@@ -89,7 +91,6 @@ const ItemsList = () => {
 
       async function updateListing() {
         const { account, web3 } = await connect();
-        const nftContract = new web3.eth.Contract(HexaNFTs.abi, hexanftAddress);
         const marketplaceContract = new web3.eth.Contract(HexaMarketplace.abi, hexaMarketplaceAddress);
         let cardPrice = ethers.utils.parseUnits(price.toString(), "wei")
         await marketplaceContract.methods.updateListing(hexanftAddress, cardid, cardPrice).send({from: account})
@@ -101,7 +102,7 @@ const ItemsList = () => {
         const nftContract = new web3.eth.Contract(HexaNFTs.abi, hexanftAddress);
         const marketplaceContract = new web3.eth.Contract(HexaMarketplace.abi, hexaMarketplaceAddress);
         const approved = await nftContract.methods.isApprovedForAll(account, hexaMarketplaceAddress).call()
-    if(approved == false){
+    if(approved === false){
       await nftContract.methods.setApprovalForAll(hexaMarketplaceAddress, true).send({ from: account})
     }
         // await nftContract.methods.setApprovalForAll(hexaMarketplaceAddress, true).send({ from: account})

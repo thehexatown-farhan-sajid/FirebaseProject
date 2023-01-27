@@ -1,29 +1,18 @@
 import React from "react";
-import  Web3Modal  from 'web3modal'
-import Web3 from "web3"
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ethers } from "ethers";
 import { FiSearch } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { setDefaultAccount } from "../redux/counterSlice";
-import connect from "../utils/auth";
-
-// const modal = new Web3Modal({
-//   network: "goerli",
-//   theme: "light", // optional, 'dark' / 'light',
-//   cacheProvider: false, // optional
-//   providerOptions: {}, // required
-// })
 
 const provider =
   window.ethereum != null
     ? new ethers.providers.Web3Provider(window.ethereum)
     : ethers.providers.getDefaultProvider();
-    console.log("provider",ethers.providers.getDefaultProvider())
 
 const Navbar = () => {
-  const [errorMessage, setErrorMessage] = useState(null);
+  // const [errorMessage, setErrorMessage] = useState(null);
   // const [defaultAccount, setDefaultAccount] = useState(null);
   const [userBalance, setUserBalance] = useState("");
   const dispatch = useDispatch();
@@ -33,9 +22,7 @@ const Navbar = () => {
       provider.send("eth_requestAccounts", []).then(async () => {
         await accountChangedHandler(provider.getSigner());
       });
-    } else {
-      setErrorMessage("Please Install Metamask!!!");
-    }
+    } 
   };
   const accountChangedHandler = async (newAccount) => {
     const address = await newAccount.getAddress();
@@ -46,8 +33,7 @@ const Navbar = () => {
     await getuserBalance(address);
   };
   const getuserBalance = async (address) => {
-    const balance = await provider.getBalance(address, "latest");
-    console.log("balance",balance)
+    await provider.getBalance(address, "latest");
   };
 
   return (

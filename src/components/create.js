@@ -1,5 +1,4 @@
-import React, { useContext, useState } from "react";
-import { ethers } from "ethers";
+import React, { useState } from "react";
 import {
   hexanftAddress
 } from "../utils/options";
@@ -22,8 +21,6 @@ const ipfs = create({
     authorization: auth,
   },
 });
-// console.log("AUTH",auth)
-
 const MintingForm = () => {
   const [fileUrl, setFileUrl] = useState(null);
   const [formInput, updateFormInput] = useState({
@@ -144,7 +141,7 @@ const MintingForm = () => {
             onChange={onChange}
           />{" "}
           {fileUrl && (
-            <img className="rounded mt-4" width="350px" src={fileUrl} />
+            <img className="rounded mt-4" width="350px" src={fileUrl} alt = "phto" />
           )}
           <button
             onClick={createNFT}

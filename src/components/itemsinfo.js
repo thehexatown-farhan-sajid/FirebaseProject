@@ -1,21 +1,17 @@
 import React from "react";
 import { ethers } from "ethers";
-// import Web3 from "web3";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
-import SimpleDateTime  from 'react-simple-timestamp-to-date';
-
-// import Web3Modal from "web3modal";
-import { hexanftAddress, hexaMarketplaceAddress, hexanAuctionAddress, WethAddress } from "../utils/options";
+import { getETHPrice } from "../utils/getEthPrice";
+import { hexanftAddress, hexaMarketplaceAddress, hexanAuctionAddress} from "../utils/options";
 import connect from "../utils/auth";
 import HexaNFTs from "../Abis/contracts/HexaNFTs.sol/HexaNFTs.json";
-// import Hexatoken from "../Abis/contracts/ERC20.sol/HexaToken.json";
 import HexaMarketplace from "../Abis/contracts/HexaMarketplace.sol/HexaMarketplace.json";
 import HexamAuction from "../Abis/contracts/HexaAuction.sol/HexamAuction.json"
-import Weth from "../Abis/contracts/WETH.sol/Weth.json"
 const ItemsInfo = () => {
+  //States
   const [properties, setProperties] = useState(false);
   const [useraccount, setUserAccount] = useState('')
   const [collection, setCollection] = useState(false);
@@ -34,6 +30,8 @@ const ItemsInfo = () => {
   const [cancelshow, setCancelShow] = useState(false);
   const [price, setPrice] = useState(0)
   const [bidsection, setBidSection] = useState(false)
+  const [usdprice, setUsdPrice] = useState(null)
+  const [reserve, setReseve] = useState(null)
   const newtime = new Date()
   const currentTime = newtime.getTime()/1000
 
@@ -62,8 +60,64 @@ const ItemsInfo = () => {
     setActivity(!activity);
   };
   useEffect(() => {
+    async function loadImage() {
+      const { account, web3 } = await connect();
+      setUserAccount(account)
+      const nftContract = new web3.eth.Contract(HexaNFTs.abi, hexanftAddress);
+      const marketplaceContract = new web3.eth.Contract(
+        HexaMarketplace.abi,
+        hexaMarketplaceAddress
+      );
+      const auctionContract = new web3.eth.Contract(HexamAuction.abi, hexanAuctionAddress)
+      const getAuctionval = await auctionContract.methods.getAuction(hexanftAddress, cardid).call()
+      const reservePrice = ethers.utils.formatUnits(getAuctionval._reservePrice?getAuctionval._reservePrice.toString():0,"ether")
+      setReseve(reservePrice)
+      const value = await getETHPrice()
+      setUsdPrice(value)
+      if(getAuctionval._reservePrice > 0){
+        setBidSection(true)
+      }
+      setGetAuction(getAuctionval)
+      const highbider = await auctionContract.methods.getHighestBidder(hexanftAddress, cardid).call()
+      setGetHighestBidder(highbider)
+      const dOffer = await marketplaceContract.methods.directoffer(cardid).call()
+      setDoffer(dOffer)
+  
+      const tokenUri = await nftContract.methods.tokenURI(cardid).call();
+      const owner = await nftContract.methods.ownerOf(cardid).call();
+      
+      let listings = await marketplaceContract.methods
+        .listings(hexanftAddress, cardid, owner)
+        .call();
+      let price = ethers.utils.formatUnits(
+        listings.pricePerItem.toString(),
+        "ether"
+      );
+      const currentDateTime = new Date();
+      if (account === owner&& dOffer.pricePerItem>0 && dOffer.deadline > currentDateTime.getTime() / 1000){
+        setShow(true)
+      }
+      if (account === dOffer.offerer  && dOffer.deadline > currentDateTime.getTime() / 1000){
+        setCancelShow(true)
+      }
+      const meta = await axios.get(tokenUri);
+      let item = {
+        price: price,
+        owner: owner,
+        tokenId: cardid,
+        image: meta.data.image,
+        name: meta.data.name,
+        symbol: meta.data.symbol,
+        description: meta.data.description,
+        royalty: meta.data.royalty,
+      };
+  
+      setCardInfo(item);
+    }
+    if(cardid && cardid!==0){ 
     loadImage();
-  }, []);
+    }
+  }, [cardid]);
 
   // console.log("cardsymbol", cardinfo.symbol);
   async function cancelOffer() {
@@ -77,16 +131,12 @@ const ItemsInfo = () => {
   }
   async function acceptOffer() {
     const { web3 } = await connect();
-    // const tokenContract = new web3.eth.Contract(Hexatoken.abi, hexaTokenAddress)
-    // const tokenContract = new web3.eth.Contract(Weth.abi, WethAddress)
-
     const nftContract = new web3.eth.Contract(HexaNFTs.abi, hexanftAddress);
     const marketplaceContract = new web3.eth.Contract(
       HexaMarketplace.abi,
       hexaMarketplaceAddress
     );
     const owner = await nftContract.methods.ownerOf(cardid).call()
-    // console.log("owner",owner)
     const approved = await nftContract.methods.isApprovedForAll(owner, hexaMarketplaceAddress).call()
     if(approved === false){
       await nftContract.methods.setApprovalForAll(hexaMarketplaceAddress, true).send({ from: owner})
@@ -94,70 +144,16 @@ const ItemsInfo = () => {
     
      await marketplaceContract.methods.acceptOffer(hexanftAddress, cardid, doffer.offerer).send({from: owner})
   }
-
+// marketplace palceBid function  call to palce new bid
   async function placeBid(){
     const { account, web3 } = await connect();
-    // const nftContract = new web3.eth.Contract(HexaNFTs.abi, hexanftAddress)
     const auctionContract = new web3.eth.Contract(HexamAuction.abi, hexanAuctionAddress)
     let cardPrice = ethers.utils.parseUnits(price.toString(), "wei")
     await auctionContract.methods.placeBid(hexanftAddress, cardid).send({from: account, value: cardPrice})
   }
 
-
-  async function loadImage() {
-    const { account, web3 } = await connect();
-    setUserAccount(account)
-    // const  web3 = new Web3(new Web3.providers.HttpProvider("https://goerli.infura.io/v3/a40778806c9e4d0f962550277a5babed"));
-    // const accounts = await web3.eth.getAccounts()
-    // console.log(accounts)
-    const nftContract = new web3.eth.Contract(HexaNFTs.abi, hexanftAddress);
-    const marketplaceContract = new web3.eth.Contract(
-      HexaMarketplace.abi,
-      hexaMarketplaceAddress
-    );
-    const auctionContract = new web3.eth.Contract(HexamAuction.abi, hexanAuctionAddress)
-    const getAuctionval = await auctionContract.methods.getAuction(hexanftAddress, cardid).call()
-    if(getAuctionval._reservePrice > 0){
-      setBidSection(true)
-    }
-    setGetAuction(getAuctionval)
-    const highbider = await auctionContract.methods.getHighestBidder(hexanftAddress, cardid).call()
-    // console.log(highbider._bid)
-    setGetHighestBidder(highbider)
-    const dOffer = await marketplaceContract.methods.directoffer(cardid).call()
-    setDoffer(dOffer)
-
-    const tokenUri = await nftContract.methods.tokenURI(cardid).call();
-    const owner = await nftContract.methods.ownerOf(cardid).call();
-    
-    let listings = await marketplaceContract.methods
-      .listings(hexanftAddress, cardid, owner)
-      .call();
-    let price = ethers.utils.formatUnits(
-      listings.pricePerItem.toString(),
-      "ether"
-    );
-    const currentDateTime = new Date();
-    if (account === owner&& dOffer.pricePerItem>0 && dOffer.deadline > currentDateTime.getTime() / 1000){
-      setShow(true)
-    }
-    if (account === dOffer.offerer  && dOffer.deadline > currentDateTime.getTime() / 1000){
-      setCancelShow(true)
-    }
-    const meta = await axios.get(tokenUri);
-    let item = {
-      price: price,
-      owner: owner,
-      tokenId: cardid,
-      image: meta.data.image,
-      name: meta.data.name,
-      symbol: meta.data.symbol,
-      description: meta.data.description,
-      royalty: meta.data.royalty,
-    };
-
-    setCardInfo(item);
-  }
+// Load card image
+  
   return (
     <div className="h-full -w-full">
       <div className="flex flex-col max-w-[1240px] h-full mx-auto bg-white">
@@ -340,7 +336,8 @@ const ItemsInfo = () => {
             <div className="flex flex-row w-[600px] h-16 items-center mt-8 ml-2 border-2 rounded-md justify-between">
               <button className="flex flex-row w-[75px] ml-4 h-10 pl-5 text-white font-bold bg-blue-500 items-center border-2 rounded-md text-[15px]" onClick={placeBid}>Bid</button>
               <input placeholder="Bid Price" type={"number"} className = "w-[250px] h-10 border-2"  onChange={(e) =>setPrice(e.target.value )}/>
-              <p className="mr-2 font-bold text-[15px]">Reserve Price : {ethers.utils.formatUnits(getauction._reservePrice?getauction._reservePrice.toString():0,"ether")} ETH</p>
+              <p className="mr-2 font-bold text-[12px]">Reserve Price : {reserve} ETH</p>
+              <p className="mr-2 font-bold text-[12px]">${(Number(reserve) * usdprice).toFixed(2)} USD</p>
             </div>
             <div className="flex flex-row w-[600px] h-16 items-center mt-[-2px] ml-2 border-2 rounded-md justify-between">
             <p className="ml-2 font-bold text-[12px]">End Time: {new Date(getauction._endTime*1000).toLocaleString()}</p>
@@ -487,9 +484,14 @@ const ItemsInfo = () => {
                       <td className="px-6 py-4 text-sm text-gray-800 whitespace-nowrap">
                         {ethers.utils.formatUnits(doffer.pricePerItem.toString(),"ether")} WETH
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-800 whitespace-nowrap">
-                      {new Date(doffer.deadline*1000).toLocaleString()}
-                      </td>
+                      {doffer.deadline > 0 ?(
+                        <td className="px-6 py-4 text-sm text-gray-800 whitespace-nowrap">
+                        {new Date(doffer.deadline*1000).toLocaleString()}
+                        </td>
+                      ):<td className="px-6 py-4 text-sm text-gray-800 whitespace-nowrap">
+                        --
+                      </td>}
+                      
                       <td className="px-6 py-4 text-sm text-gray-800 whitespace-nowrap">
                         {doffer.deadline > currentTime ? (
                           <span className="text-blue-500">True</span>

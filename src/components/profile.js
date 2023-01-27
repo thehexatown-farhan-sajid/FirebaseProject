@@ -4,8 +4,7 @@ import { ethers } from "ethers";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { useDispatch } from "react-redux";
-
-// import allActions from "./actions";
+import { getETHPrice } from "../utils/getEthPrice";
 
 import { hexanftAddress, hexaMarketplaceAddress } from "../utils/options";
 import connect from "../utils/auth";
@@ -13,33 +12,35 @@ import HexaNFTs from "../Abis/contracts/HexaNFTs.sol/HexaNFTs.json";
 import HexaMarketplace from "../Abis/contracts/HexaMarketplace.sol/HexaMarketplace.json";
 import { setCardId } from "../redux/counterSlice";
 const UserProfile = () => {
+  // States
   const dispatch = useDispatch();
-
   const [nfts, setNFts] = useState([]);
+  const [usdprice, setUsdPrice] = useState(null)
   // const [cardid, setCardId] = useState(0);
   const [loadingState, setLoadingState] = useState("not-loaded");
   const [id, setId] = useState(null)
- 
+ // useEffect call loadnft function to load all nft of the profile owner address
   useEffect(() => {
     loadNFTs();
   }, []);
+ 
+
+  // cancel listing 
   useEffect(() => {
-    if(id!=0){
+    async function cancelListing(){
+      const { account, web3 } = await connect();
+      const marketplaceContract = new web3.eth.Contract(
+        HexaMarketplace.abi,
+        hexaMarketplaceAddress
+      );
+      await marketplaceContract.methods.cancelListing(hexanftAddress, id).send({from: account})
+    }
+    if(id && id!==0){
     cancelListing();
     }
   }, [id]);
 
-  async function cancelListing(){
-    const { account, web3 } = await connect();
-    const nftContract = new web3.eth.Contract(HexaNFTs.abi, hexanftAddress);
-    const marketplaceContract = new web3.eth.Contract(
-      HexaMarketplace.abi,
-      hexaMarketplaceAddress
-    );
-    await marketplaceContract.methods.cancelListing(hexanftAddress, id).send({from: account})
-  }
-
-
+// loadnft of the profile owner and its metadata from ipfs
   async function loadNFTs() {
     const { account, web3 } = await connect();
     const nftContract = new web3.eth.Contract(HexaNFTs.abi, hexanftAddress);
@@ -47,9 +48,12 @@ const UserProfile = () => {
       HexaMarketplace.abi,
       hexaMarketplaceAddress
     );
-    
-    let walletofowner = await nftContract.methods.walletOfOwner(account).call();
-
+    // Live price of the ethereum in usd
+    const value = await getETHPrice()
+    setUsdPrice(value)
+    // get the all token of the address that are minted on it
+    const walletofowner = await nftContract.methods.walletOfOwner(account).call();
+// map the token id and its metadata
     const items = await Promise.all(
       walletofowner.map(async (i) => {
         const tokenUri = await nftContract.methods.tokenURI(i).call();
@@ -57,9 +61,9 @@ const UserProfile = () => {
         let listings = await marketplaceContract.methods
           .listings(hexanftAddress, i, owner)
           .call();
-        // let owner = await nftContract.methods.ownerOf(i).call()
         // we want get the token metadata - json
         const meta = await axios.get(tokenUri);
+        // peice convert into ether from wei
         let price = ethers.utils.formatUnits(
           listings.pricePerItem.toString(),
           "ether"
@@ -104,7 +108,8 @@ const UserProfile = () => {
                   {nft.name}
                 </p>
                 <div style={{ height: "72px", overflow: "hidden" }}>
-                  <p className="text-gray-400">{nft.price}</p>
+                  <p className="text-gray-800">Price: {nft.price} ETH</p>
+                  <p className="text-gray-800">${(Number(nft.price) * usdprice).toFixed(2)} USD</p>
                 </div>
               </div>
               {nft.price> 0 ?(
